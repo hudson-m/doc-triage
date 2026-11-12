@@ -16,8 +16,12 @@ jobs:
   quality:
     name: Lint, types, tests, eval
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history: SonarQube uses it for new-code detection and blame
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -30,13 +34,20 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
-      - name: Unit and integration tests
-        run: npm test
+      - name: Unit and integration tests, with coverage
+        run: npm run test:coverage
       # The rules are deterministic: any misclassification by them fails the build.
       - name: Evaluation gate (offline, fake LLM)
         run: npm run eval -- --min-rules-accuracy 1
       - name: Audit runtime dependencies
         run: npm audit --omit=dev --audit-level=moderate
+      # Secrets are not available to forks and Dependabot PRs: skip instead of failing.
+      - name: SonarQube Cloud analysis and quality gate
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
+      - name: SonarQube Cloud skipped
+        if: env.SONAR_TOKEN == ''
+        run: echo "::notice::SONAR_TOKEN is not set; SonarQube Cloud analysis skipped."
 
   e2e:
     name: End-to-end (Playwright)

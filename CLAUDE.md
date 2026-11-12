@@ -4,7 +4,7 @@ Guidance for AI coding agents (and people) working in this repository.
 
 ## Commands
 
-- `npm test` — all Vitest projects (core, api, web)
+- `npm test` — all Vitest projects (core, api, web); `npm run test:coverage` enforces the floor
 - `npm run lint` / `npm run typecheck` / `npm run format:check`
 - `npm run eval -- --min-rules-accuracy 1` — must pass before changing rules or thresholds
 - `npm run e2e` — Playwright (run `npx playwright install chromium` once)

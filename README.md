@@ -25,23 +25,24 @@ includes the exact masked text that left the process, its token usage and its co
 
 ## What's automated
 
-| Concern                   | How it's enforced                                                                   | Where                                                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Package boundaries        | ESLint blocks `core` from importing frameworks, SDKs or Node I/O                    | [`eslint.config.mjs`](eslint.config.mjs), [ADR 1](docs/adr/0001-pure-core-with-enforced-boundaries.md) |
-| Type safety               | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, type-aware lint | [`tsconfig.base.json`](tsconfig.base.json)                                                             |
-| PII never reaches the LLM | Unit test asserts what the LLM port receives; E2E checks it in the browser          | [`pipeline.test.ts`](packages/core/test/pipeline.test.ts), [`classify.spec.ts`](e2e/classify.spec.ts)  |
-| Rule regressions          | CI eval gate: any misclassification by the rules fails the build                    | [`eval.ts`](apps/api/src/eval.ts), [ADR 4](docs/adr/0004-offline-by-default-and-an-eval-gate.md)       |
-| API contract              | Zod validation, RFC 9457 problem details, shared TypeScript types with the UI       | [`app.ts`](apps/api/src/app.ts)                                                                        |
-| Wiring                    | Playwright against the production-shaped server                                     | [`playwright.config.ts`](playwright.config.ts)                                                         |
-| Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`ci.yml`](.github/workflows/ci.yml)                                       |
-| Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                | [`dependabot.yml`](.github/dependabot.yml)                                                             |
+| Concern                   | How it's enforced                                                                   | Where                                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Package boundaries        | ESLint blocks `core` from importing frameworks, SDKs or Node I/O                    | [`eslint.config.mjs`](eslint.config.mjs), [ADR 1](docs/adr/0001-pure-core-with-enforced-boundaries.md)         |
+| Type safety               | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, type-aware lint | [`tsconfig.base.json`](tsconfig.base.json)                                                                     |
+| PII never reaches the LLM | Unit test asserts what the LLM port receives; E2E checks it in the browser          | [`pipeline.test.ts`](packages/core/test/pipeline.test.ts), [`classify.spec.ts`](e2e/classify.spec.ts)          |
+| Rule regressions          | CI eval gate: any misclassification by the rules fails the build                    | [`eval.ts`](apps/api/src/eval.ts), [ADR 4](docs/adr/0004-offline-by-default-and-an-eval-gate.md)               |
+| API contract              | Zod validation, RFC 9457 problem details, shared TypeScript types with the UI       | [`app.ts`](apps/api/src/app.ts)                                                                                |
+| Wiring                    | Playwright against the production-shaped server                                     | [`playwright.config.ts`](playwright.config.ts)                                                                 |
+| Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`ci.yml`](.github/workflows/ci.yml)                                               |
+| Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                | [`dependabot.yml`](.github/dependabot.yml)                                                                     |
+| Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)         | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md) |
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
   PR[Pull request] --> Q & E & D
-  Q[quality: format, lint,<br/>type check, Vitest,<br/>eval gate, audit]
+  Q[quality: format, lint,<br/>type check, Vitest + coverage,<br/>eval gate, audit,<br/>SonarQube quality gate]
   E[e2e: Playwright<br/>Chromium]
   D[docker: build image,<br/>run it, smoke test]
   Q & E & D --> OK[ci-passed<br/>single required check]
@@ -66,6 +67,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 4. [Offline by default, and an evaluation gate in CI](docs/adr/0004-offline-by-default-and-an-eval-gate.md)
 5. [A test pyramid: Vitest for most tests, Playwright for two journeys](docs/adr/0005-test-pyramid-with-playwright.md)
 6. [Fastify, not NestJS](docs/adr/0006-fastify-not-nestjs.md)
+7. [SonarQube Cloud as a quality gate on pull requests](docs/adr/0007-sonarqube-cloud-quality-gate.md)
 
 ## Run it locally
 
@@ -74,6 +76,7 @@ Requirements: Node 26+. No account or API key needed: the LLM is a deterministic
 ```bash
 npm ci
 npm test               # unit, integration and component tests (Vitest)
+npm run test:coverage  # same, with coverage in coverage/ (lcov for SonarQube)
 npm run lint
 npm run typecheck
 npm run eval           # accuracy and cost report on dataset/labeled.jsonl
@@ -104,6 +107,14 @@ LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... npm run eval
 
 `LLM_MODEL` picks the model (default `claude-opus-5-5`); prices for cost reports are in
 [`pricing.ts`](packages/core/src/pricing.ts). See [`.env.example`](.env.example).
+
+### SonarQube Cloud setup (once per fork)
+
+1. Import the repository in SonarQube Cloud and keep the suggested organization and project
+   keys (or update [`sonar-project.properties`](sonar-project.properties)).
+2. In the project's _Analysis Method_, turn **Automatic Analysis off**: CI-based analysis is
+   what sends coverage.
+3. Add the generated token as the `SONAR_TOKEN` repository secret. Until then, CI skips the step.
 
 ## Example eval output (fake LLM)
 
