@@ -22,6 +22,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
     "eval": "node apps/api/src/eval.ts"
   },
   "devDependencies": {

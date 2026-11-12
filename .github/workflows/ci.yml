@@ -28,7 +28,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Format
         run: npm run format:check
       # Includes the package-boundary rules in eslint.config.mjs
@@ -43,8 +43,8 @@ jobs:
         run: npm run eval -- --min-rules-accuracy 1
       - name: Audit runtime dependencies
         run: npm audit --omit=dev --audit-level=moderate
-      # The token is scoped to the steps that need it, never to the whole job: `npm ci` runs
-      # third-party install scripts. Forks and Dependabot PRs have no secrets, so skip there.
+      # The token is scoped to the steps that need it, never to the whole job: other steps run
+      # third-party code. Forks and Dependabot PRs have no secrets, so skip there.
       - name: Check for SonarQube Cloud token
         id: sonar
         env:
@@ -72,8 +72,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npm ci --ignore-scripts
+      - run: npm run e2e:install
       - run: npm run e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()

@@ -1,21 +1,26 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { loadConfig } from "./config.ts";
-import { evaluate, parseDataset, type EvalReport } from "./evaluate.ts";
+import { evaluate, parseDataset, resolveDatasetPath, type EvalReport } from "./evaluate.ts";
 import { createLlmClassifier } from "./llm-factory.ts";
 
-// Usage: npm run eval -- [--dataset dataset/labeled.jsonl] [--min-rules-accuracy 1]
+// Usage: npm run eval -- [--dataset labeled.jsonl] [--min-rules-accuracy 1]
+// --dataset names a .jsonl file inside the repository's dataset/ folder.
 // The provider comes from LLM_PROVIDER, like the server. With "anthropic" this spends real tokens.
+const DATASET_DIR = fileURLToPath(new URL("../../../dataset/", import.meta.url));
+
 const { values } = parseArgs({
   options: {
-    dataset: { type: "string", default: "dataset/labeled.jsonl" },
+    dataset: { type: "string", default: "labeled.jsonl" },
     "min-rules-accuracy": { type: "string" },
   },
 });
 
 const config = loadConfig(process.env);
 const llm = createLlmClassifier(config);
-const docs = parseDataset(await readFile(values.dataset, "utf8"));
+const datasetPath = resolveDatasetPath(values.dataset, DATASET_DIR);
+const docs = parseDataset(await readFile(datasetPath, "utf8"));
 const report = await evaluate(docs, llm, config.MIN_LLM_CONFIDENCE);
 
 print(report, config.LLM_PROVIDER, llm.model);

@@ -6,7 +6,22 @@ import {
   type LlmClassifier,
   type Route,
 } from "@doc-triage/core";
+import { extname, resolve, sep } from "node:path";
 import { z } from "zod";
+
+/**
+ * Resolves a dataset name given on the command line to a .jsonl file inside `datasetDir`.
+ * CLI arguments are untrusted input: without this check, `--dataset ../../.env` would read
+ * any file the process can reach (path traversal).
+ */
+export function resolveDatasetPath(name: string, datasetDir: string): string {
+  const root = resolve(datasetDir);
+  const fullPath = resolve(root, name);
+  if (!fullPath.startsWith(root + sep) || extname(fullPath) !== ".jsonl") {
+    throw new Error(`Dataset must be a .jsonl file inside ${root}`);
+  }
+  return fullPath;
+}
 
 export const LabeledDocSchema = z.object({
   id: z.string().min(1),
