@@ -9,13 +9,19 @@ base="${1:?usage: check-endpoints.sh <base url> [seconds]}"
 wait_seconds="${2:-30}"
 curl_opts=(--fail --silent --show-error --connect-timeout 5 --max-time 15)
 
+# Each startup attempt is capped to the time left, so the whole wait never exceeds the limit.
 deadline=$((SECONDS + wait_seconds))
-until curl "${curl_opts[@]}" "${base}/health" >/dev/null 2>&1; do
-  if ((SECONDS >= deadline)); then
+while true; do
+  remaining=$((deadline - SECONDS))
+  if ((remaining <= 0)); then
     echo "No healthy response from ${base}/health within ${wait_seconds}s" >&2
     exit 1
   fi
-  sleep 1
+  attempt_max=$((remaining < 15 ? remaining : 15))
+  if curl "${curl_opts[@]}" --max-time "$attempt_max" "${base}/health" >/dev/null 2>&1; then
+    break
+  fi
+  if ((deadline - SECONDS > 1)); then sleep 1; fi
 done
 
 curl "${curl_opts[@]}" "${base}/health" | grep -q '"status":"ok"'
