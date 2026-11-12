@@ -92,4 +92,33 @@ describe("App", () => {
 
     expect(screen.queryByTestId("doc-type")).not.toBeInTheDocument();
   });
+
+  it("ignores a response that arrives after the text changed", async () => {
+    let respond: (response: Response) => void = () => undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            respond = resolve;
+          }),
+      ),
+    );
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText("Document text"), "Payroll note");
+    await userEvent.click(screen.getByRole("button", { name: "Classify" }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear pay stub" }));
+    respond(
+      new Response(JSON.stringify(llmResult), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    // Wait for the request to settle (the submit button leaves its pending state) ...
+    expect(await screen.findByRole("button", { name: "Classify" })).toBeInTheDocument();
+    // ... and the late result for "Payroll note" is not shown next to the pay stub sample.
+    expect(screen.queryByTestId("doc-type")).not.toBeInTheDocument();
+  });
 });

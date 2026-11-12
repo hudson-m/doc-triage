@@ -76,8 +76,11 @@ jobs:
           SHA: ${{ github.sha }}
           REPOSITORY: ${{ github.repository }}
         run: |
+          # The pull request that produced this commit: merged into main, merge commit == SHA.
+          # Open or unrelated pull requests that merely contain the commit never qualify.
           pr="$(gh api "repos/${REPOSITORY}/commits/${SHA}/pulls" \
-            --jq '.[0] // {} | {ref: (.head.ref // ""), hotfix: ([.labels[]?.name] | index("hotfix") != null)}')"
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main" and .merge_commit_sha == $ENV.SHA)][0] // {}
+              | {ref: (.head.ref // ""), hotfix: ([.labels[]?.name] | index("hotfix") != null)}')"
           head_ref="$(jq -r .ref <<<"$pr")"
           has_label="$(jq -r .hotfix <<<"$pr")"
           if [[ "$head_ref" == hotfix/* && "$has_label" == "true" ]]; then
@@ -178,6 +181,7 @@ jobs:
           docker buildx imagetools create --tag "${IMAGE}:${DEPLOY_ENV}" "${IMAGE}@${REF}"
           echo "${DEPLOY_ENV} now runs \`${IMAGE}@${REF}\`" >> "$GITHUB_STEP_SUMMARY"
       # Only now, after every staging check passed, may a release to main promote this image.
+      # Without the Azure deploy and endpoint checks, staging did not qualify it: no tag.
       - name: Record that this image passed staging
-        if: github.ref_name == 'staging'
+        if: github.ref_name == 'staging' && vars.AZURE_CLIENT_ID != ''
         run: docker buildx imagetools create --tag "${IMAGE}:staged-tree-${TREE}" "${IMAGE}@${REF}"
