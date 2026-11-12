@@ -1,0 +1,19 @@
+# Gemini Code Assist on GitHub: an independent reviewer from a different model family than the
+# one that writes most of this code (ADR 12). It comments; people decide.
+# Keys: https://docs.cloud.google.com/gemini/docs/code-review/customize-repo-review
+have_fun: false
+code_review:
+  disable: false
+  # Formatting and lint are enforced in CI; low-severity notes would mostly repeat them.
+  comment_severity_threshold: MEDIUM
+  max_review_comments: -1
+  pull_request_opened:
+    help: false
+    summary: true
+    code_review: true
+    include_drafts: false
+ignore_patterns:
+  - package-lock.json
+  - dataset/**
+  - "**/dist/**"
+  - coverage/**

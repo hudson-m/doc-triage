@@ -39,6 +39,7 @@ includes the exact masked text that left the process, its token usage and its co
 | Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                                   | [`dependabot.yml`](.github/dependabot.yml)                                                                      |
 | Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)                            | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md)  |
 | Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge                                 | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                  |
+| Independent AI review     | Gemini Code Assist (a different model family from the author) comments on every PR; advisory only      | [`.gemini/styleguide.md`](.gemini/styleguide.md), [ADR 12](docs/adr/0012-independent-ai-review.md)              |
 
 ## Pipeline
 
@@ -102,6 +103,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 9. [Build once, promote the same image digest through environments](docs/adr/0009-build-once-promote-by-digest.md)
 10. [Releases go from staging to main; only labelled hotfixes skip staging](docs/adr/0010-staging-to-main-releases.md)
 11. [Azure Container Apps, signed in with OIDC, one identity per environment](docs/adr/0011-azure-container-apps-with-oidc.md)
+12. [AI review comes from a different model family than the one that writes the code](docs/adr/0012-independent-ai-review.md)
 
 ## Run it locally
 
