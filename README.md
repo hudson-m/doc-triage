@@ -33,7 +33,8 @@ includes the exact masked text that left the process, its token usage and its co
 | Rule regressions          | CI eval gate: any misclassification by the rules fails the build                    | [`eval.ts`](apps/api/src/eval.ts), [ADR 4](docs/adr/0004-offline-by-default-and-an-eval-gate.md)               |
 | API contract              | Zod validation, RFC 9457 problem details, shared TypeScript types with the UI       | [`app.ts`](apps/api/src/app.ts)                                                                                |
 | Wiring                    | Playwright against the production-shaped server                                     | [`playwright.config.ts`](playwright.config.ts)                                                                 |
-| Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`ci.yml`](.github/workflows/ci.yml)                                               |
+| Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`smoke-test.sh`](scripts/smoke-test.sh)                                           |
+| Releases                  | One image per commit, promoted by digest through staging and production             | [`cd.yml`](.github/workflows/cd.yml), [ADR 9](docs/adr/0009-build-once-promote-by-digest.md)                   |
 | Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                | [`dependabot.yml`](.github/dependabot.yml)                                                                     |
 | Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)         | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md) |
 | Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge              | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                 |
@@ -50,6 +51,19 @@ flowchart LR
   S & Q & E & D --> OK[ci-passed<br/>single required check]
 ```
 
+On every push to `main`, [`cd.yml`](.github/workflows/cd.yml) runs the same gates on the merge
+commit, then builds the image once and promotes that exact digest
+([ADR 9](docs/adr/0009-build-once-promote-by-digest.md)):
+
+```mermaid
+flowchart LR
+  M[Push to main] --> CI[CI gates<br/>reusable ci.yml]
+  CI --> P[Publish to GHCR<br/>sha tag, provenance, SBOM]
+  P --> ST[staging<br/>pull digest, smoke test,<br/>tag :staging]
+  ST --> A{Approval}
+  A --> PR2[production<br/>same digest, smoke test,<br/>tag :production]
+```
+
 ## Architecture
 
 ```
@@ -57,6 +71,7 @@ packages/core/   pure domain: rules, PII masking, pipeline, pricing, the LlmClas
 apps/api/        Fastify API, Anthropic adapter, config, eval CLI (composition root)
 apps/web/        React 19 + Vite, imports only types from core
 e2e/             Playwright journeys
+scripts/         container smoke test, shared by CI and CD
 dataset/         synthetic labeled documents (fake personal data)
 docs/adr/        architecture decision records
 ```
@@ -71,6 +86,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 6. [Fastify, not NestJS](docs/adr/0006-fastify-not-nestjs.md)
 7. [SonarQube Cloud as a quality gate on pull requests](docs/adr/0007-sonarqube-cloud-quality-gate.md)
 8. [Secrets are scanned across the whole git history](docs/adr/0008-secret-scanning-of-git-history.md)
+9. [Build once, promote the same image digest through environments](docs/adr/0009-build-once-promote-by-digest.md)
 
 ## Run it locally
 
@@ -119,6 +135,17 @@ LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... npm run eval
    what sends coverage.
 3. Add the generated token as the `SONAR_TOKEN` repository secret. Until then, CI skips the step.
 
+### Environments setup
+
+`staging` and `production` exist as GitHub Environments that accept deployments from `main`
+only. Approval before production is a _required reviewers_ rule, which GitHub offers on
+public repositories (private ones need a paid plan):
+
+```bash
+echo '{"reviewers":[{"type":"User","id":<your user id>}],"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
+  | gh api -X PUT repos/<owner>/doc-triage/environments/production --input -
+```
+
 ## Example eval output (fake LLM)
 
 ```
@@ -135,8 +162,10 @@ clear documents in real traffic. In fake mode the LLM accuracy means nothing; ru
 
 ## Honest scope
 
-- **Exercised:** everything in the local commands above, including Playwright in Chromium.
-  The Docker image and the GitHub Actions workflow are written to be exercised in CI.
+- **Exercised:** everything in the local commands above, including Playwright in Chromium; on
+  GitHub, every CI job including the Docker build, container smoke test and SonarQube gate.
+- **Environments are registry tags, not servers:** CD publishes and promotes the image, but
+  no host runs it yet. Deploying is one more step per environment (ADR 9).
 - **Not covered:** names and street addresses are not masked (that needs an NER model);
   input is extracted text, not PDFs or images (production would put OCR such as AWS Textract
   in front); no authentication or rate limiting.

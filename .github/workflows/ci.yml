@@ -2,15 +2,20 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  # main is not built here: cd.yml calls this workflow on every push to main, so the merge
+  # commit passes the same gates before an image is published.
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A new push to a PR cancels the old run; runs on main (via CD) are never cancelled.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Actions are pinned to commit SHAs (tag in the comment): a moved tag cannot change what runs.
 # Dependabot updates both. Checkouts don't persist the GitHub token for later steps.
@@ -122,12 +127,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke test the container
-        run: |
-          docker run -d --name app -p 3000:3000 doc-triage:ci
-          for i in $(seq 1 20); do curl -fs localhost:3000/health && break; sleep 1; done
-          curl -fs -X POST localhost:3000/api/classify -H 'content-type: application/json' \
-            -d '{"text":"Form W-2 Wage and Tax Statement. Social security wages 1,000."}' | grep '"route":"rules"'
-          curl -fs localhost:3000/ | grep -q '<div id="root">'
+        run: scripts/smoke-test.sh doc-triage:ci
 
   ci-passed:
     name: ci-passed
