@@ -84,7 +84,7 @@ apps/api/        Fastify API, Anthropic adapter, config, eval CLI (composition r
 apps/web/        React 19 + Vite, imports only types from core
 e2e/             Playwright journeys
 scripts/         smoke test and endpoint checks (CI and CD), release-source check
-infra/azure/     one-time Azure setup, run by a person in Cloud Shell
+infra/azure/     one-time Azure setup, run by a person signed in with MFA
 dataset/         synthetic labeled documents (fake personal data)
 docs/adr/        architecture decision records
 ```
@@ -152,8 +152,10 @@ LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... npm run eval
 
 ### Azure setup (once)
 
-In the Azure portal, open Cloud Shell (Bash), upload
-[`infra/azure/bootstrap.sh`](infra/azure/bootstrap.sh) and run `bash bootstrap.sh`. It prints
+Sign in with `az login` (MFA required for writes) and run
+[`infra/azure/bootstrap.sh`](infra/azure/bootstrap.sh) with bash, locally or in Azure Cloud
+Shell. It creates one shared Container Apps environment and, per GitHub environment, a
+resource group, an app and an OIDC-only identity (ADR 11). It prints
 the tenant, subscription and per-environment client ids; set them as GitHub variables
 (`AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` on the repository, `AZURE_CLIENT_ID` on each
 environment), and make the GHCR package public so the apps can pull it without a credential.
