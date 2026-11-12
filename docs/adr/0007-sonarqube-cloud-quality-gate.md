@@ -21,6 +21,10 @@ answers "is this pull request at least as good as `main`?".
   without depending on an external service.
 - Without `SONAR_TOKEN` (forks, Dependabot PRs, a fresh clone of the repo), the step is
   skipped with a notice instead of failing.
+- The token is exposed only to the steps that need it, never to the whole job: `npm ci` runs
+  third-party install scripts. Actions are pinned to commit SHAs for the same reason.
+- SonarQube Cloud analyses the whole repository, so scope comes from `sonar.exclusions` and
+  `sonar.coverage.exclusions`, kept in line with the Vitest coverage settings.
 
 ## Consequences
 
