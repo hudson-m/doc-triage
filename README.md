@@ -25,19 +25,20 @@ includes the exact masked text that left the process, its token usage and its co
 
 ## What's automated
 
-| Concern                   | How it's enforced                                                                   | Where                                                                                                          |
-| ------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Package boundaries        | ESLint blocks `core` from importing frameworks, SDKs or Node I/O                    | [`eslint.config.mjs`](eslint.config.mjs), [ADR 1](docs/adr/0001-pure-core-with-enforced-boundaries.md)         |
-| Type safety               | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, type-aware lint | [`tsconfig.base.json`](tsconfig.base.json)                                                                     |
-| PII never reaches the LLM | Unit test asserts what the LLM port receives; E2E checks it in the browser          | [`pipeline.test.ts`](packages/core/test/pipeline.test.ts), [`classify.spec.ts`](e2e/classify.spec.ts)          |
-| Rule regressions          | CI eval gate: any misclassification by the rules fails the build                    | [`eval.ts`](apps/api/src/eval.ts), [ADR 4](docs/adr/0004-offline-by-default-and-an-eval-gate.md)               |
-| API contract              | Zod validation, RFC 9457 problem details, shared TypeScript types with the UI       | [`app.ts`](apps/api/src/app.ts)                                                                                |
-| Wiring                    | Playwright against the production-shaped server                                     | [`playwright.config.ts`](playwright.config.ts)                                                                 |
-| Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`smoke-test.sh`](scripts/smoke-test.sh)                                           |
-| Releases                  | One image per commit, promoted by digest through staging and production             | [`cd.yml`](.github/workflows/cd.yml), [ADR 9](docs/adr/0009-build-once-promote-by-digest.md)                   |
-| Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                | [`dependabot.yml`](.github/dependabot.yml)                                                                     |
-| Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)         | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md) |
-| Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge              | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                 |
+| Concern                   | How it's enforced                                                                                      | Where                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Package boundaries        | ESLint blocks `core` from importing frameworks, SDKs or Node I/O                                       | [`eslint.config.mjs`](eslint.config.mjs), [ADR 1](docs/adr/0001-pure-core-with-enforced-boundaries.md)          |
+| Type safety               | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, type-aware lint                    | [`tsconfig.base.json`](tsconfig.base.json)                                                                      |
+| PII never reaches the LLM | Unit test asserts what the LLM port receives; E2E checks it in the browser                             | [`pipeline.test.ts`](packages/core/test/pipeline.test.ts), [`classify.spec.ts`](e2e/classify.spec.ts)           |
+| Rule regressions          | CI eval gate: any misclassification by the rules fails the build                                       | [`eval.ts`](apps/api/src/eval.ts), [ADR 4](docs/adr/0004-offline-by-default-and-an-eval-gate.md)                |
+| API contract              | Zod validation, RFC 9457 problem details, shared TypeScript types with the UI                          | [`app.ts`](apps/api/src/app.ts)                                                                                 |
+| Wiring                    | Playwright against the production-shaped server                                                        | [`playwright.config.ts`](playwright.config.ts)                                                                  |
+| Container                 | Image built and smoke-tested in CI                                                                     | [`Dockerfile`](Dockerfile), [`smoke-test.sh`](scripts/smoke-test.sh)                                            |
+| Release path              | `release-source` check: main takes only `staging` or labelled `hotfix/*`; rulesets block direct pushes | [`release-guard.yml`](.github/workflows/release-guard.yml), [ADR 10](docs/adr/0010-staging-to-main-releases.md) |
+| Releases                  | One image per commit, promoted by digest through staging and production                                | [`cd.yml`](.github/workflows/cd.yml), [ADR 9](docs/adr/0009-build-once-promote-by-digest.md)                    |
+| Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                                   | [`dependabot.yml`](.github/dependabot.yml)                                                                      |
+| Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)                            | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md)  |
+| Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge                                 | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                  |
 
 ## Pipeline
 
@@ -51,18 +52,29 @@ flowchart LR
   S & Q & E & D --> OK[ci-passed<br/>single required check]
 ```
 
-On every push to `main`, [`cd.yml`](.github/workflows/cd.yml) runs the same gates on the merge
-commit, then builds the image once and promotes that exact digest
-([ADR 9](docs/adr/0009-build-once-promote-by-digest.md)):
+### Branches and releases
+
+Features merge into `staging`; `main` only takes releases from `staging`, or `hotfix/*`
+branches that also carry the `hotfix` label. Direct pushes to either branch are blocked
+([ADR 10](docs/adr/0010-staging-to-main-releases.md)). On every push to them,
+[`cd.yml`](.github/workflows/cd.yml) runs the CI gates again on the merged commit and
+promotes one image by digest ([ADR 9](docs/adr/0009-build-once-promote-by-digest.md)):
 
 ```mermaid
 flowchart LR
-  M[Push to main] --> CI[CI gates<br/>reusable ci.yml]
-  CI --> P[Publish to GHCR<br/>sha tag, provenance, SBOM]
-  P --> ST[staging<br/>pull digest, smoke test,<br/>tag :staging]
-  ST --> A{Approval}
-  A --> PR2[production<br/>same digest, smoke test,<br/>tag :production]
+  F[feature/* PR] --> S[staging branch]
+  S --> B[CI gates, build once<br/>GHCR: sha + tree tags,<br/>provenance, SBOM]
+  B --> SE[staging env<br/>smoke test, tag :staging]
+  S -- release PR --> M[main branch]
+  H[hotfix/* PR<br/>+ hotfix label] --> M
+  M --> R[CI gates, reuse the image<br/>with the same git tree]
+  R --> A{Approval}
+  A --> PE[production env<br/>smoke test, tag :production]
 ```
+
+A release merge commit has a new SHA but the same git tree as `staging`, so production gets
+the image staging tested, found by its `tree-<hash>` tag. A hotfix has a new tree, so it is
+built from `main`; afterwards, merge `main` back into `staging` with a pull request.
 
 ## Architecture
 
@@ -87,6 +99,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 7. [SonarQube Cloud as a quality gate on pull requests](docs/adr/0007-sonarqube-cloud-quality-gate.md)
 8. [Secrets are scanned across the whole git history](docs/adr/0008-secret-scanning-of-git-history.md)
 9. [Build once, promote the same image digest through environments](docs/adr/0009-build-once-promote-by-digest.md)
+10. [Releases go from staging to main; only labelled hotfixes skip staging](docs/adr/0010-staging-to-main-releases.md)
 
 ## Run it locally
 
@@ -135,13 +148,18 @@ LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... npm run eval
    what sends coverage.
 3. Add the generated token as the `SONAR_TOKEN` repository secret. Until then, CI skips the step.
 
-### Environments setup
+### Branch protection and environments setup
 
-`staging` and `production` exist as GitHub Environments that accept deployments from `main`
-only. Approval before production is a _required reviewers_ rule, which GitHub offers on
-public repositories (private ones need a paid plan):
+The `staging` environment accepts deployments from the `staging` branch only, and
+`production` from `main` only. Branch rulesets and environment reviewers are enforced by
+GitHub on public repositories (private ones need a paid plan). Once public:
 
 ```bash
+# Block direct pushes; require PRs, green CI and, for main, the release-source check.
+gh api -X POST repos/<owner>/doc-triage/rulesets --input .github/rulesets/main.json
+gh api -X POST repos/<owner>/doc-triage/rulesets --input .github/rulesets/staging.json
+
+# Production waits for an approval.
 echo '{"reviewers":[{"type":"User","id":<your user id>}],"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}' \
   | gh api -X PUT repos/<owner>/doc-triage/environments/production --input -
 ```
@@ -166,6 +184,8 @@ clear documents in real traffic. In fake mode the LLM accuracy means nothing; ru
   GitHub, every CI job including the Docker build, container smoke test and SonarQube gate.
 - **Environments are registry tags, not servers:** CD publishes and promotes the image, but
   no host runs it yet. Deploying is one more step per environment (ADR 9).
+- **Rulesets and the production approval are versioned but not enforced yet:** GitHub's free
+  plan doesn't enforce them on private repositories (see the setup commands above).
 - **Not covered:** names and street addresses are not masked (that needs an NER model);
   input is extracted text, not PDFs or images (production would put OCR such as AWS Textract
   in front); no authentication or rate limiting.

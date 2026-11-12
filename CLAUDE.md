@@ -18,3 +18,5 @@ Guidance for AI coding agents (and people) working in this repository.
 - New behaviour needs a test at the lowest layer that can prove it (ADR 5).
 - A decision that changes architecture or trade-offs gets a short ADR in `docs/adr/`.
 - Never commit secrets. The default `LLM_PROVIDER=fake` must keep working offline.
+- Pull requests target `staging`. Only release PRs (`staging`) and labelled `hotfix/*` branches
+  target `main`; never push to `main` or `staging` directly (ADR 10).

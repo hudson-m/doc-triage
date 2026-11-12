@@ -73,12 +73,14 @@ jobs:
         run: npm audit --omit=dev --audit-level=moderate
       # The token is scoped to the steps that need it, never to the whole job: other steps run
       # third-party code. Forks and Dependabot PRs have no secrets, so skip there.
+      # SonarQube Cloud's free plan analyses pull requests and main only, not other branches.
       - name: Check for SonarQube Cloud token
         id: sonar
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [ -n "$SONAR_TOKEN" ]; then
+          if [[ -n "$SONAR_TOKEN" ]]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::SONAR_TOKEN is not set; SonarQube Cloud analysis skipped."

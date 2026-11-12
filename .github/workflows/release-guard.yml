@@ -1,0 +1,32 @@
+name: Release guard
+
+# Required check on main (see .github/rulesets/main.json): main only takes releases from
+# staging, or hotfix/* branches that also carry the `hotfix` label (ADR 10).
+# Re-runs when labels or the base branch change, so adding the label updates the check.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  release-source:
+    name: release-source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      # Event values are passed as environment variables, never interpolated into the script:
+      # a branch name is attacker-controlled text.
+      - name: Check where the change comes from
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+          HOTFIX_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'hotfix') }}
+        run: scripts/check-release-source.sh "$HEAD_REF" "$HEAD_REPO" "$BASE_REPO" "$HOTFIX_LABEL"

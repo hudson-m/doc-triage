@@ -1,6 +1,6 @@
 # 9. Build once, promote the same image digest through environments
 
-**Status:** accepted
+**Status:** accepted (branch flow amended by ADR 10)
 
 ## Context
 

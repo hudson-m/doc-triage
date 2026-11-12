@@ -1,7 +1,9 @@
 version: 2
+# Updates go to staging like any other change, and reach main with the next release (ADR 10).
 updates:
   - package-ecosystem: npm
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
     groups:
@@ -13,9 +15,11 @@ updates:
         update-types: [version-update:semver-major, version-update:semver-minor]
   - package-ecosystem: github-actions
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
   - package-ecosystem: docker
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
