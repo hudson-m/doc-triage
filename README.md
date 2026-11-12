@@ -196,7 +196,8 @@ clear documents in real traffic. In fake mode the LLM accuracy means nothing; ru
   GitHub, every CI job including the Docker build, container smoke test and SonarQube gate.
 - **Hosting:** each environment deploys to Azure Container Apps through OIDC (ADR 11) once
   `infra/azure/bootstrap.sh` has run; before that, CD stops at the registry. Apps scale to
-  zero, so the first request after a quiet period waits for a cold start.
+  zero, so the first request after a quiet period waits for a cold start. Expected cost is $0
+  within Azure's free grants; see [docs/cost.md](docs/cost.md) for what would change that.
 - **Rulesets and the production approval are versioned but not enforced yet:** GitHub's free
   plan doesn't enforce them on private repositories (see the setup commands above).
 - **Not covered:** names and street addresses are not masked (that needs an NER model);
