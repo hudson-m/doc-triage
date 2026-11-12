@@ -64,12 +64,12 @@ promotes one image by digest ([ADR 9](docs/adr/0009-build-once-promote-by-digest
 flowchart LR
   F[feature/* PR] --> S[staging branch]
   S --> B[CI gates, build once<br/>GHCR: sha + tree tags,<br/>provenance, SBOM]
-  B --> SE[staging env<br/>smoke test, tag :staging]
+  B --> SE[staging env<br/>Azure Container Apps,<br/>check URL, tag :staging]
   S -- release PR --> M[main branch]
   H[hotfix/* PR<br/>+ hotfix label] --> M
   M --> R[CI gates, reuse the image<br/>with the same git tree]
   R --> A{Approval}
-  A --> PE[production env<br/>smoke test, tag :production]
+  A --> PE[production env<br/>Azure Container Apps,<br/>check URL, tag :production]
 ```
 
 A release merge commit has a new SHA but the same git tree as `staging`, so production gets
@@ -83,7 +83,8 @@ packages/core/   pure domain: rules, PII masking, pipeline, pricing, the LlmClas
 apps/api/        Fastify API, Anthropic adapter, config, eval CLI (composition root)
 apps/web/        React 19 + Vite, imports only types from core
 e2e/             Playwright journeys
-scripts/         container smoke test, shared by CI and CD
+scripts/         smoke test and endpoint checks (CI and CD), release-source check
+infra/azure/     one-time Azure setup, run by a person in Cloud Shell
 dataset/         synthetic labeled documents (fake personal data)
 docs/adr/        architecture decision records
 ```
@@ -100,6 +101,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 8. [Secrets are scanned across the whole git history](docs/adr/0008-secret-scanning-of-git-history.md)
 9. [Build once, promote the same image digest through environments](docs/adr/0009-build-once-promote-by-digest.md)
 10. [Releases go from staging to main; only labelled hotfixes skip staging](docs/adr/0010-staging-to-main-releases.md)
+11. [Azure Container Apps, signed in with OIDC, one identity per environment](docs/adr/0011-azure-container-apps-with-oidc.md)
 
 ## Run it locally
 
@@ -148,6 +150,14 @@ LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=... npm run eval
    what sends coverage.
 3. Add the generated token as the `SONAR_TOKEN` repository secret. Until then, CI skips the step.
 
+### Azure setup (once)
+
+In the Azure portal, open Cloud Shell (Bash), upload
+[`infra/azure/bootstrap.sh`](infra/azure/bootstrap.sh) and run `bash bootstrap.sh`. It prints
+the tenant, subscription and per-environment client ids; set them as GitHub variables
+(`AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` on the repository, `AZURE_CLIENT_ID` on each
+environment), and make the GHCR package public so the apps can pull it without a credential.
+
 ### Branch protection and environments setup
 
 The `staging` environment accepts deployments from the `staging` branch only, and
@@ -182,8 +192,9 @@ clear documents in real traffic. In fake mode the LLM accuracy means nothing; ru
 
 - **Exercised:** everything in the local commands above, including Playwright in Chromium; on
   GitHub, every CI job including the Docker build, container smoke test and SonarQube gate.
-- **Environments are registry tags, not servers:** CD publishes and promotes the image, but
-  no host runs it yet. Deploying is one more step per environment (ADR 9).
+- **Hosting:** each environment deploys to Azure Container Apps through OIDC (ADR 11) once
+  `infra/azure/bootstrap.sh` has run; before that, CD stops at the registry. Apps scale to
+  zero, so the first request after a quiet period waits for a cold start.
 - **Rulesets and the production approval are versioned but not enforced yet:** GitHub's free
   plan doesn't enforce them on private repositories (see the setup commands above).
 - **Not covered:** names and street addresses are not masked (that needs an NER model);

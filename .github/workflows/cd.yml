@@ -94,12 +94,17 @@ jobs:
     needs: image
     runs-on: ubuntu-latest
     # Each environment accepts its own branch only; production adds required reviewers.
-    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      url: ${{ steps.azure.outputs.url }}
     permissions:
       contents: read
       packages: write
+      id-token: write # OIDC token for Azure; no stored cloud credential (ADR 11)
     env:
       REF: ${{ needs.image.outputs.digest }}
+      RESOURCE_GROUP: rg-doc-triage-${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      CONTAINER_APP: ca-doc-triage-${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -114,6 +119,30 @@ jobs:
         run: |
           docker pull "${IMAGE}@${REF}"
           scripts/smoke-test.sh "${IMAGE}@${REF}"
+      # Azure steps run once infra/azure/bootstrap.sh has run and the environment variables
+      # exist; until then CD stops at the registry, as before.
+      - name: Sign in to Azure (OIDC)
+        if: vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy the digest to Azure Container Apps
+        id: azure
+        if: vars.AZURE_CLIENT_ID != ''
+        run: |
+          az containerapp update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \
+            --image "${IMAGE}@${REF}" --output none
+          fqdn="$(az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)"
+          echo "url=https://${fqdn}" >> "$GITHUB_OUTPUT"
+      # The app scales to zero, so the first request may wait for a cold start.
+      - name: Check the deployed endpoints
+        if: vars.AZURE_CLIENT_ID != ''
+        env:
+          URL: ${{ steps.azure.outputs.url }}
+        run: scripts/check-endpoints.sh "$URL" 120
       # Re-points the environment's tag at the existing manifest: nothing is rebuilt.
       - name: Promote
         run: |
