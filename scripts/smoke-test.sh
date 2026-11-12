@@ -10,7 +10,7 @@ base="http://localhost:3000"
 
 cleanup() {
   status=$?
-  if [ "$status" -ne 0 ]; then
+  if [[ "$status" -ne 0 ]]; then
     echo "Smoke test failed; container logs:" >&2
     docker logs "$name" >&2 || true
   fi
