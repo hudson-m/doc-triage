@@ -35,8 +35,7 @@ release, so there has to be a narrow, deliberate way around staging.
 
 - Production only ever runs an image that passed staging, except for hotfixes, which are built
   from `main` and are the explicit, labelled exception.
-- GitHub enforces rulesets and environment reviewers on private repositories only on paid
-  plans. The rulesets are versioned and applied with one command when the repository is
-  public; until then the `release-source` check still fails visibly on a wrong source.
+- The rulesets are versioned and applied from that JSON. GitHub enforces them on public
+  repositories for free; a private repository would need a paid plan.
 - The hotfix back-merge is a manual pull request: automating it with the workflow token would
   open a PR on which GitHub does not run CI.

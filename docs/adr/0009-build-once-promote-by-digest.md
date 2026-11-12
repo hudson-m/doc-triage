@@ -20,9 +20,8 @@ a different base image, a different dependency resolved, a different build cache
 - GitHub Environments `staging` and `production` model the promotion. Each job pulls the
   digest, runs `scripts/smoke-test.sh` against it, then moves the environment's tag with
   `docker buildx imagetools create`, which re-points the tag without rebuilding.
-- Both environments accept deployments from `main` only. `production` gets required reviewers
-  so promotion waits for a person; GitHub only offers that rule on private repositories with a
-  paid plan, so it is enabled when the repository is public.
+- Each environment accepts deployments from its own branch only (ADR 10). `production` has
+  required reviewers, so promotion waits for a person.
 - Deploys never run in parallel and are never cancelled half-way (`concurrency: cd`).
 
 ## Consequences

@@ -26,16 +26,22 @@ apps. A demo that scales to zero between visits uses a small fraction of it.
 | `LLM_PROVIDER=anthropic` on a deployed app    | Anthropic API tokens, billed by Anthropic                      |
 | An App Service plan                           | Billed per instance per hour, used or not                      |
 
-## GitHub, while the repository is private
+## GitHub
 
-| Item                           | Free plan allowance                                         | Note                                               |
-| ------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
-| GitHub Actions                 | $12 of included compute a month (about 2,000 Linux minutes) | Unlimited for public repositories                  |
-| GitHub Packages (GHCR) storage | 500 MB, shared with Actions artifacts                       | Private images count; **public packages are free** |
-| GitHub Packages data transfer  | 1 GB a month                                                | Pulls by Actions don't count                       |
+The repository is public, so GitHub Actions on standard runners is free. Public GHCR packages
+are free too; the image package must be switched to public after its first publish (it is
+created private). For reference, a private repository on the Free plan gets:
+
+| Item                           | Free plan allowance                                         | Note                         |
+| ------------------------------ | ----------------------------------------------------------- | ---------------------------- |
+| GitHub Actions                 | $12 of included compute a month (about 2,000 Linux minutes) | Unlimited for public repos   |
+| GitHub Packages (GHCR) storage | 500 MB, shared with Actions artifacts                       | Public packages don't count  |
+| GitHub Packages data transfer  | 1 GB a month                                                | Pulls by Actions don't count |
 
 With the default $0 spending limit, going over a GitHub allowance blocks the usage instead of
-billing it. Making the repository and the GHCR package public removes these limits.
+billing it.
+
+CodeRabbit (ADR 12) is free for public repositories.
 
 ## Guardrails
 

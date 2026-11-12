@@ -39,7 +39,7 @@ includes the exact masked text that left the process, its token usage and its co
 | Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                                   | [`dependabot.yml`](.github/dependabot.yml)                                                                      |
 | Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)                            | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md)  |
 | Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge                                 | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                  |
-| Independent AI review     | Gemini Code Assist (a different model family from the author) comments on every PR; advisory only      | [`.gemini/styleguide.md`](.gemini/styleguide.md), [ADR 12](docs/adr/0012-independent-ai-review.md)              |
+| Independent AI review     | CodeRabbit (not the model that writes the code) comments on every PR; advisory only                    | [`.coderabbit.yaml`](.coderabbit.yaml), [ADR 12](docs/adr/0012-independent-ai-review.md)                        |
 
 ## Pipeline
 
@@ -103,7 +103,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 9. [Build once, promote the same image digest through environments](docs/adr/0009-build-once-promote-by-digest.md)
 10. [Releases go from staging to main; only labelled hotfixes skip staging](docs/adr/0010-staging-to-main-releases.md)
 11. [Azure Container Apps, signed in with OIDC, one identity per environment](docs/adr/0011-azure-container-apps-with-oidc.md)
-12. [AI review comes from a different model family than the one that writes the code](docs/adr/0012-independent-ai-review.md)
+12. [AI review comes from a different model than the one that writes the code](docs/adr/0012-independent-ai-review.md)
 
 ## Run it locally
 
@@ -200,8 +200,8 @@ clear documents in real traffic. In fake mode the LLM accuracy means nothing; ru
   `infra/azure/bootstrap.sh` has run; before that, CD stops at the registry. Apps scale to
   zero, so the first request after a quiet period waits for a cold start. Expected cost is $0
   within Azure's free grants; see [docs/cost.md](docs/cost.md) for what would change that.
-- **Rulesets and the production approval are versioned but not enforced yet:** GitHub's free
-  plan doesn't enforce them on private repositories (see the setup commands above).
+- **Rulesets and the production approval are enforced:** the JSON in `.github/rulesets/` is
+  what GitHub applies to `main` and `staging`, and `production` waits for a reviewer.
 - **Not covered:** names and street addresses are not masked (that needs an NER model);
   input is extracted text, not PDFs or images (production would put OCR such as AWS Textract
   in front); no authentication or rate limiting.
