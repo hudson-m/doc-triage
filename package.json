@@ -1,0 +1,38 @@
+{
+  "name": "doc-triage",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev:api": "npm run dev -w @doc-triage/api",
+    "dev:web": "npm run dev -w @doc-triage/web",
+    "build": "npm run build -w @doc-triage/web",
+    "start": "node apps/api/src/server.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p . && tsc -p packages/core && tsc -p apps/api && tsc -p apps/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "eval": "node apps/api/src/eval.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vitest": "5.1.0"
+  }
+}

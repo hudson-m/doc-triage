@@ -1,0 +1,150 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1d1d1b;
+  --muted: #5f5f5a;
+  --border: #dcdcd6;
+  --accent: #2f5bd3;
+  --rules: #2e7d4f;
+  --llm: #8a5a00;
+  --review: #a3302a;
+  font-family: system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --surface: #20201e;
+    --text: #ecece8;
+    --muted: #a5a59e;
+    --border: #3a3a36;
+    --accent: #7d9cff;
+    --rules: #6fcf97;
+    --llm: #f2c14e;
+    --review: #ff8a80;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+}
+
+header p {
+  color: var(--muted);
+  margin-top: -8px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  font:
+    14px/1.5 ui-monospace,
+    monospace;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9em;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--review);
+}
+
+.result {
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--route-color);
+  border-radius: 6px;
+}
+
+.route-rules {
+  --route-color: var(--rules);
+}
+.route-llm {
+  --route-color: var(--llm);
+}
+.route-manual_review {
+  --route-color: var(--review);
+}
+
+.result h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.result h2 small {
+  font-size: 0.6em;
+  color: var(--muted);
+  text-transform: none;
+}
+
+.route {
+  color: var(--route-color);
+  font-weight: 600;
+}
+
+.llm h3 {
+  font-size: 0.95em;
+}
+
+pre {
+  white-space: pre-wrap;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 6px;
+}
