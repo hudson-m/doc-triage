@@ -23,6 +23,27 @@ export function resolveDatasetPath(name: string, datasetDir: string): string {
   return fullPath;
 }
 
+// z.number() rejects NaN, and min/max reject Infinity.
+const AccuracySchema = z
+  .string()
+  .trim()
+  .min(1, "must not be empty")
+  .transform(Number)
+  .pipe(z.number().min(0).max(1));
+
+/**
+ * Parses `--min-rules-accuracy`. Without this, "abc" became NaN and "" became 0, and both made
+ * the CI gate pass whatever the accuracy was.
+ */
+export function parseMinAccuracy(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = AccuracySchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`--min-rules-accuracy must be a number between 0 and 1, got "${value}"`);
+  }
+  return parsed.data;
+}
+
 export const LabeledDocSchema = z.object({
   id: z.string().min(1),
   label: z.enum(DOCUMENT_TYPES),

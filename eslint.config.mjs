@@ -11,7 +11,13 @@ const forbid = (patterns, message) => ({
 });
 
 export default defineConfig([
-  globalIgnores(["**/node_modules/**", "**/dist/**", "test-results/**", "playwright-report/**"]),
+  globalIgnores([
+    "**/node_modules/**",
+    "**/dist/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+  ]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

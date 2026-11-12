@@ -79,4 +79,17 @@ describe("App", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Too big");
   });
+
+  it("hides a result once the text no longer matches it", async () => {
+    stubFetch(200, llmResult);
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText("Document text"), "Payroll note");
+    await userEvent.click(screen.getByRole("button", { name: "Classify" }));
+    expect(await screen.findByTestId("doc-type")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear pay stub" }));
+
+    expect(screen.queryByTestId("doc-type")).not.toBeInTheDocument();
+  });
 });

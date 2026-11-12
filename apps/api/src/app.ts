@@ -63,16 +63,18 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return options.classify(text);
   });
 
-  if (options.webDist) {
-    await app.register(fastifyStatic, { root: options.webDist });
-    // Single-page app: unknown GET routes outside /api fall back to index.html.
-    app.setNotFoundHandler((request, reply) => {
-      if (request.method === "GET" && !request.url.startsWith("/api/")) {
-        return reply.sendFile("index.html");
-      }
-      return sendProblem(reply, { type: "about:blank", title: "Not found", status: 404 });
-    });
+  const webDist = options.webDist;
+  if (webDist) {
+    await app.register(fastifyStatic, { root: webDist });
   }
+  // Unknown routes answer with problem details. With the UI served, GET routes outside /api
+  // fall back to index.html (single-page app).
+  app.setNotFoundHandler((request, reply) => {
+    if (webDist && request.method === "GET" && !request.url.startsWith("/api/")) {
+      return reply.sendFile("index.html");
+    }
+    return sendProblem(reply, { type: "about:blank", title: "Not found", status: 404 });
+  });
 
   return app;
 }

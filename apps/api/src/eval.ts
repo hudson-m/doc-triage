@@ -2,7 +2,13 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { loadConfig } from "./config.ts";
-import { evaluate, parseDataset, resolveDatasetPath, type EvalReport } from "./evaluate.ts";
+import {
+  evaluate,
+  parseDataset,
+  parseMinAccuracy,
+  resolveDatasetPath,
+  type EvalReport,
+} from "./evaluate.ts";
 import { createLlmClassifier } from "./llm-factory.ts";
 
 // Usage: npm run eval -- [--dataset labeled.jsonl] [--min-rules-accuracy 1]
@@ -17,6 +23,8 @@ const { values } = parseArgs({
   },
 });
 
+// Validate every argument before evaluating: with a real provider, evaluation spends money.
+const minRules = parseMinAccuracy(values["min-rules-accuracy"]);
 const config = loadConfig(process.env);
 const llm = createLlmClassifier(config);
 const datasetPath = resolveDatasetPath(values.dataset, DATASET_DIR);
@@ -26,12 +34,11 @@ const report = await evaluate(docs, llm, config.MIN_LLM_CONFIDENCE);
 print(report, config.LLM_PROVIDER, llm.model);
 
 // CI gate: the rules are deterministic, so their accuracy must not regress.
-const minRules = values["min-rules-accuracy"];
 if (minRules !== undefined) {
   const { count, correct } = report.byRoute.rules;
   const rulesAccuracy = count === 0 ? 0 : correct / count;
-  if (rulesAccuracy < Number(minRules)) {
-    console.error(`\nFAIL: rules accuracy ${pct(rulesAccuracy)} is below ${pct(Number(minRules))}`);
+  if (rulesAccuracy < minRules) {
+    console.error(`\nFAIL: rules accuracy ${pct(rulesAccuracy)} is below ${pct(minRules)}`);
     process.exitCode = 1;
   }
 }

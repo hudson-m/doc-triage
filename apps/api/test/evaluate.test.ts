@@ -2,9 +2,28 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { FakeLlmClassifier } from "@doc-triage/core";
 import { describe, expect, it } from "vitest";
-import { evaluate, parseDataset, resolveDatasetPath } from "../src/evaluate.ts";
+import { evaluate, parseDataset, parseMinAccuracy, resolveDatasetPath } from "../src/evaluate.ts";
 
 const datasetUrl = new URL("../../../dataset/labeled.jsonl", import.meta.url);
+
+describe("parseMinAccuracy", () => {
+  it("is optional", () => {
+    expect(parseMinAccuracy(undefined)).toBeUndefined();
+  });
+
+  it.each([
+    ["1", 1],
+    ["0.95", 0.95],
+    ["0", 0],
+  ])("accepts %s", (value, expected) => {
+    expect(parseMinAccuracy(value)).toBe(expected);
+  });
+
+  // Each of these used to disable the CI gate silently (NaN or 0).
+  it.each(["abc", "", "  ", "1.5", "-0.1", "NaN"])("rejects %j", (value) => {
+    expect(() => parseMinAccuracy(value)).toThrow(/between 0 and 1/);
+  });
+});
 
 describe("evaluate", () => {
   it("never lets the rules misclassify a labeled document", async () => {

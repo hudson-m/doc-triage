@@ -28,7 +28,7 @@ a different base image, a different dependency resolved, a different build cache
 
 - What reaches `production` is byte-for-byte the image that passed CI and staging, and the job
   summary records its digest.
-- Rollback is re-pointing the `production` tag to an earlier digest; nothing is rebuilt.
-- Honest scope: the environments are registry tags, not running servers. Deploying to a host
-  (for example Azure Container Apps, signed in with OIDC) is one more step per environment that
-  points the host at the promoted digest; the rest of the pipeline stays the same.
+- Rollback redeploys an earlier digest, nothing is rebuilt: point the running app at it
+  (`az containerapp update --image <image>@sha256:<previous>`, ADR 11), run
+  `scripts/check-endpoints.sh` against its URL, and only then move the `production` tag back.
+  Moving the tag alone does not change what is running.

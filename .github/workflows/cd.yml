@@ -38,6 +38,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: read # to identify the PR behind a commit on main
     outputs:
       digest: ${{ steps.result.outputs.digest }}
     steps:
@@ -59,7 +60,26 @@ jobs:
             echo "digest=${digest}" >> "$GITHUB_OUTPUT"
             echo "::notice::Reusing the image built from tree ${tree}: ${digest}"
           else
-            echo "No image for tree ${tree} yet; building one."
+            echo "No image found for tree ${tree}."
+          fi
+      # On main, a missing staging image must stop a normal release instead of being rebuilt:
+      # production only runs what staging tested. Only a labelled hotfix may build on main.
+      - name: Allow a build on main only for a labelled hotfix
+        if: github.ref_name == 'main' && steps.existing.outputs.digest == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pr="$(gh api "repos/${REPOSITORY}/commits/${SHA}/pulls" \
+            --jq '.[0] // {} | {ref: (.head.ref // ""), hotfix: ([.labels[]?.name] | index("hotfix") != null)}')"
+          head_ref="$(jq -r .ref <<<"$pr")"
+          has_label="$(jq -r .hotfix <<<"$pr")"
+          if [[ "$head_ref" == hotfix/* && "$has_label" == "true" ]]; then
+            echo "::notice::Hotfix ${head_ref}: building the image from main."
+          else
+            echo "::error::No staging image for this tree, and this is not a labelled hotfix (head '${head_ref}'). Release from staging instead of rebuilding on main."
+            exit 1
           fi
       - name: Build and push
         id: build
@@ -132,6 +152,9 @@ jobs:
         id: azure
         if: vars.AZURE_CLIENT_ID != ''
         run: |
+          # The bootstrap placeholder listens on 80; the app listens on 3000.
+          az containerapp ingress update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \
+            --target-port 3000 --output none
           az containerapp update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \
             --image "${IMAGE}@${REF}" --output none
           fqdn="$(az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \

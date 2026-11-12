@@ -4,19 +4,21 @@ import { classify } from "./api.ts";
 import { ResultCard } from "./components/ResultCard.tsx";
 import { SAMPLES } from "./samples.ts";
 
+// Each outcome remembers the text it belongs to, so it is never shown next to other text.
 type State =
   | { readonly status: "idle" }
-  | { readonly status: "done"; readonly result: ClassificationResult }
-  | { readonly status: "error"; readonly message: string };
+  | { readonly status: "done"; readonly text: string; readonly result: ClassificationResult }
+  | { readonly status: "error"; readonly text: string; readonly message: string };
 
 async function submit(_previous: State, form: FormData): Promise<State> {
   const text = form.get("text");
-  if (typeof text !== "string") return { status: "error", message: "Missing text" };
+  if (typeof text !== "string") return { status: "error", text: "", message: "Missing text" };
   try {
-    return { status: "done", result: await classify(text) };
+    return { status: "done", text, result: await classify(text) };
   } catch (error) {
     return {
       status: "error",
+      text,
       message: error instanceof Error ? error.message : "Unexpected error",
     };
   }
@@ -25,6 +27,8 @@ async function submit(_previous: State, form: FormData): Promise<State> {
 export function App() {
   const [text, setText] = useState("");
   const [state, action, pending] = useActionState(submit, { status: "idle" });
+  // Hide an outcome once the text changes, including one that arrives after the change.
+  const current = state.status !== "idle" && state.text === text ? state : undefined;
 
   return (
     <main>
@@ -66,12 +70,12 @@ export function App() {
         </div>
       </form>
 
-      {state.status === "error" && (
+      {current?.status === "error" && (
         <p role="alert" className="error">
-          {state.message}
+          {current.message}
         </p>
       )}
-      {state.status === "done" && <ResultCard result={state.result} />}
+      {current?.status === "done" && <ResultCard result={current.result} />}
     </main>
   );
 }

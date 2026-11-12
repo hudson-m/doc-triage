@@ -18,7 +18,7 @@ LOCATION="${LOCATION:-brazilsouth}"
 SHARED_RG="rg-doc-triage-shared"
 CAE="cae-doc-triage"
 JOIN_ROLE="Container Apps Environment Joiner (doc-triage)"
-# Public placeholder until CD deploys the real image (the real app listens on 3000).
+# Public placeholder until CD deploys the real image. It listens on 80; the app listens on 3000.
 PLACEHOLDER_IMAGE="mcr.microsoft.com/k8se/quickstart:latest"
 
 subscription_id="$(az account show --query id -o tsv)"
@@ -65,9 +65,10 @@ for env in staging production; do
 
   az group create --name "$rg" --location "$LOCATION" --output none
 
+  # The placeholder listens on port 80; CD switches ingress to 3000 with the first real image.
   if ! az containerapp show --name "$app" --resource-group "$rg" --output none 2>/dev/null; then
     az containerapp create --name "$app" --resource-group "$rg" --environment "$cae_id" \
-      --image "$PLACEHOLDER_IMAGE" --ingress external --target-port 3000 \
+      --image "$PLACEHOLDER_IMAGE" --ingress external --target-port 80 \
       --cpu 0.25 --memory 0.5Gi --min-replicas 0 --max-replicas 1 \
       --env-vars LLM_PROVIDER=fake --output none
   fi
@@ -76,6 +77,9 @@ for env in staging production; do
   client_id="$(az ad app list --display-name "$display_name" --query '[0].appId' -o tsv)"
   if [[ -z "$client_id" ]]; then
     client_id="$(az ad app create --display-name "$display_name" --query appId -o tsv)"
+  fi
+  # Checked separately, so a run that stopped between the two steps recovers on the next run.
+  if ! az ad sp show --id "$client_id" --output none 2>/dev/null; then
     az ad sp create --id "$client_id" --output none
   fi
 

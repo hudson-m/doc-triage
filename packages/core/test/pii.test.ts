@@ -27,6 +27,13 @@ describe("maskPii", () => {
     expect(found).toEqual({ ssn: 1, ein: 1, email: 1, card: 1, phone: 1, account: 1 });
   });
 
+  it.each(["(212) 555-0199", "(212)555-0199", "212-555-0199", "212.555.0199", "+1 212 555 0199"])(
+    "masks the phone format %s",
+    (phone) => {
+      expect(maskPii(`Call ${phone} today`).masked).toBe("Call [PHONE] today");
+    },
+  );
+
   it("keeps the words and amounts the classifier needs", () => {
     const text = "Gross pay $4,250.00 on 2026-01-15, 80 hours, invoice 4521";
 

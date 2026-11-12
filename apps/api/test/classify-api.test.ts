@@ -87,3 +87,13 @@ describe("GET /health", () => {
     expect(response.json()).toEqual({ status: "ok" });
   });
 });
+
+describe("unknown routes", () => {
+  it("answer with problem details even when the UI is not served", async () => {
+    const response = await app.inject({ method: "GET", url: "/api/missing" });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(response.json()).toEqual({ type: "about:blank", title: "Not found", status: 404 });
+  });
+});

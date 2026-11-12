@@ -5,6 +5,7 @@
   --muted: #5f5f5a;
   --border: #dcdcd6;
   --accent: #2f5bd3;
+  --on-accent: #ffffff;
   --rules: #2e7d4f;
   --llm: #8a5a00;
   --review: #a3302a;
@@ -21,6 +22,7 @@
     --muted: #a5a59e;
     --border: #3a3a36;
     --accent: #7d9cff;
+    --on-accent: #0b1530;
     --rules: #6fcf97;
     --llm: #f2c14e;
     --review: #ff8a80;
@@ -81,7 +83,7 @@ button {
   border-radius: 6px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
 }
 
