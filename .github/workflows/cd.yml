@@ -4,7 +4,8 @@ name: CD
 # - push to staging (a merged feature): run the CI gates, build the image, deploy to staging.
 # - push to main (a release from staging): run the CI gates, then promote the image staging
 #   already tested. The release merge commit has a new SHA but the same source tree, so the
-#   image is found by its `tree-<hash>` tag and nothing is rebuilt.
+#   image is found by its `staged-tree-<hash>` tag, which staging adds only after its smoke
+#   test, deploy and endpoint checks pass. Nothing is rebuilt.
 # - push to main from a hotfix: the tree is new, so the image is built and deployed.
 # Environments are registry tags here; a host would deploy the promoted digest.
 
@@ -41,6 +42,7 @@ jobs:
       pull-requests: read # to identify the PR behind a commit on main
     outputs:
       digest: ${{ steps.result.outputs.digest }}
+      tree: ${{ steps.existing.outputs.tree }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,16 +53,19 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Look for an image built from the same source tree
+      # staging reuses any image built from this tree; main accepts only one that passed staging.
+      - name: Look for an image for the same source tree
         id: existing
+        env:
+          TAG_PREFIX: ${{ github.ref_name == 'main' && 'staged-tree' || 'tree' }}
         run: |
           tree="$(git rev-parse 'HEAD^{tree}')"
           echo "tree=${tree}" >> "$GITHUB_OUTPUT"
-          if digest="$(docker buildx imagetools inspect "${IMAGE}:tree-${tree}" --format '{{.Manifest.Digest}}' 2>/dev/null)"; then
+          if digest="$(docker buildx imagetools inspect "${IMAGE}:${TAG_PREFIX}-${tree}" --format '{{.Manifest.Digest}}' 2>/dev/null)"; then
             echo "digest=${digest}" >> "$GITHUB_OUTPUT"
-            echo "::notice::Reusing the image built from tree ${tree}: ${digest}"
+            echo "::notice::Reusing ${TAG_PREFIX}-${tree}: ${digest}"
           else
-            echo "No image found for tree ${tree}."
+            echo "No image tagged ${TAG_PREFIX}-${tree}."
           fi
       # On main, a missing staging image must stop a normal release instead of being rebuilt:
       # production only runs what staging tested. Only a labelled hotfix may build on main.
@@ -78,7 +83,7 @@ jobs:
           if [[ "$head_ref" == hotfix/* && "$has_label" == "true" ]]; then
             echo "::notice::Hotfix ${head_ref}: building the image from main."
           else
-            echo "::error::No staging image for this tree, and this is not a labelled hotfix (head '${head_ref}'). Release from staging instead of rebuilding on main."
+            echo "::error::No image for this tree passed staging, and this is not a labelled hotfix (head '${head_ref}'). Release from staging instead of rebuilding on main."
             exit 1
           fi
       - name: Build and push
@@ -123,6 +128,7 @@ jobs:
       id-token: write # OIDC token for Azure; no stored cloud credential (ADR 11)
     env:
       REF: ${{ needs.image.outputs.digest }}
+      TREE: ${{ needs.image.outputs.tree }}
       RESOURCE_GROUP: rg-doc-triage-${{ github.ref_name == 'main' && 'production' || 'staging' }}
       CONTAINER_APP: ca-doc-triage-${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
@@ -171,3 +177,7 @@ jobs:
         run: |
           docker buildx imagetools create --tag "${IMAGE}:${DEPLOY_ENV}" "${IMAGE}@${REF}"
           echo "${DEPLOY_ENV} now runs \`${IMAGE}@${REF}\`" >> "$GITHUB_STEP_SUMMARY"
+      # Only now, after every staging check passed, may a release to main promote this image.
+      - name: Record that this image passed staging
+        if: github.ref_name == 'staging'
+        run: docker buildx imagetools create --tag "${IMAGE}:staged-tree-${TREE}" "${IMAGE}@${REF}"

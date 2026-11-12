@@ -74,7 +74,7 @@ flowchart LR
 ```
 
 A release merge commit has a new SHA but the same git tree as `staging`, so production gets
-the image staging tested, found by its `tree-<hash>` tag. A hotfix has a new tree, so it is
+the image staging tested, found by its `staged-tree-<hash>` tag (added only once staging passed). A hotfix has a new tree, so it is
 built from `main`; afterwards, merge `main` back into `staging` with a pull request.
 
 ## Architecture

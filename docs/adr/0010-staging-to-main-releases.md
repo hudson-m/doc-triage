@@ -28,7 +28,7 @@ release, so there has to be a narrow, deliberate way around staging.
 - **CD enforces the same rule:** on `main`, if no staging image exists for the tree, the
   release fails; only a merged `hotfix/*` pull request with the label may build on `main`.
 - **Release merges use merge commits.** The merge commit has a new SHA but the same git tree as
-  the `staging` tip, so CD finds the staging image by its `tree-<hash>` tag and promotes it
+  the `staging` tip, so CD finds the image by its `staged-tree-<hash>` tag (added only after staging passed) and promotes it
   instead of rebuilding (ADR 9).
 - **After a hotfix**, `main` is merged back into `staging` with a pull request, so the next
   release does not revert the fix.
