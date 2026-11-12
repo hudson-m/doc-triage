@@ -36,16 +36,18 @@ includes the exact masked text that left the process, its token usage and its co
 | Container                 | Image built and smoke-tested in CI                                                  | [`Dockerfile`](Dockerfile), [`ci.yml`](.github/workflows/ci.yml)                                               |
 | Dependencies              | Lock file, `npm ci`, runtime `npm audit`, Dependabot                                | [`dependabot.yml`](.github/dependabot.yml)                                                                     |
 | Code quality and coverage | SonarQube Cloud quality gate on every PR; Vitest coverage floor (80% lines)         | [`sonar-project.properties`](sonar-project.properties), [ADR 7](docs/adr/0007-sonarqube-cloud-quality-gate.md) |
+| Leaked keys               | gitleaks scans every commit in the history; a finding blocks the merge              | [`ci.yml`](.github/workflows/ci.yml), [ADR 8](docs/adr/0008-secret-scanning-of-git-history.md)                 |
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-  PR[Pull request] --> Q & E & D
+  PR[Pull request] --> S & Q & E & D
+  S[secrets: gitleaks<br/>whole git history]
   Q[quality: format, lint,<br/>type check, Vitest + coverage,<br/>eval gate, audit,<br/>SonarQube quality gate]
   E[e2e: Playwright<br/>Chromium]
   D[docker: build image,<br/>run it, smoke test]
-  Q & E & D --> OK[ci-passed<br/>single required check]
+  S & Q & E & D --> OK[ci-passed<br/>single required check]
 ```
 
 ## Architecture
@@ -68,6 +70,7 @@ Decisions and their trade-offs are written down as [ADRs](docs/adr):
 5. [A test pyramid: Vitest for most tests, Playwright for two journeys](docs/adr/0005-test-pyramid-with-playwright.md)
 6. [Fastify, not NestJS](docs/adr/0006-fastify-not-nestjs.md)
 7. [SonarQube Cloud as a quality gate on pull requests](docs/adr/0007-sonarqube-cloud-quality-gate.md)
+8. [Secrets are scanned across the whole git history](docs/adr/0008-secret-scanning-of-git-history.md)
 
 ## Run it locally
 
