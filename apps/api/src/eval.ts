@@ -74,6 +74,10 @@ function print(r: EvalReport, provider: string, model: string): void {
     console.log("\nMisclassified:");
     console.table(r.errors);
   }
+  if (r.baselineFailures.length > 0) {
+    console.log(`\nBaseline calls that failed (excluded from the LLM-only figures):`);
+    console.table(r.baselineFailures);
+  }
 }
 
 function pct(n: number): string {

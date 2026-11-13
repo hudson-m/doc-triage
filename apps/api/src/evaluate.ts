@@ -4,6 +4,7 @@ import {
   DOCUMENT_TYPES,
   maskPii,
   type LlmClassifier,
+  type LlmVerdict,
   type Route,
 } from "@doc-triage/core";
 import { extname, resolve, sep } from "node:path";
@@ -66,7 +67,10 @@ export interface EvalReport {
   readonly hybridCostUsd: number;
   /** What the same documents cost if every one went to the LLM. */
   readonly llmOnlyCostUsd: number;
+  /** Accuracy of the LLM-only baseline over the documents whose baseline call succeeded. */
   readonly llmOnlyAccuracy: number;
+  /** Baseline calls that failed (timeout, rate limit...); they don't stop the evaluation. */
+  readonly baselineFailures: readonly { id: string; reason: string }[];
   readonly errors: readonly { id: string; expected: string; actual: string; route: Route }[];
 }
 
@@ -93,6 +97,7 @@ export async function evaluate(
     manual_review: { count: 0, correct: 0 },
   };
   const errors: EvalReport["errors"][number][] = [];
+  const baselineFailures: EvalReport["baselineFailures"][number][] = [];
   let hybridCostUsd = 0;
   let llmOnlyCostUsd = 0;
   let llmOnlyCorrect = 0;
@@ -108,8 +113,15 @@ export async function evaluate(
         errors.push({ id: doc.id, expected: doc.label, actual: result.type, route: result.route });
     }
 
-    // Baseline: the same document sent straight to the LLM (still masked).
-    const baseline = await llm.classify(maskPii(doc.text).masked);
+    // Baseline: the same document sent straight to the LLM (still masked). A failed call is
+    // recorded and the loop goes on: one API error must not discard the whole evaluation.
+    let baseline: LlmVerdict;
+    try {
+      baseline = await llm.classify(maskPii(doc.text).masked);
+    } catch (error) {
+      baselineFailures.push({ id: doc.id, reason: describe(error) });
+      continue;
+    }
     llmOnlyCostUsd += costUsd(llm.model, baseline.usage);
     if (baseline.kind === "classified" && baseline.type === doc.label) llmOnlyCorrect += 1;
   }
@@ -123,11 +135,16 @@ export async function evaluate(
     byRoute,
     hybridCostUsd,
     llmOnlyCostUsd,
-    llmOnlyAccuracy: ratio(llmOnlyCorrect, docs.length),
+    llmOnlyAccuracy: ratio(llmOnlyCorrect, docs.length - baselineFailures.length),
+    baselineFailures,
     errors,
   };
 }
 
 function ratio(part: number, whole: number): number {
   return whole === 0 ? 0 : part / whole;
+}
+
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
