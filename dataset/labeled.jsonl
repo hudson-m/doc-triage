@@ -1,0 +1,24 @@
+{"id":"ps-01","label":"pay_stub","text":"NORTHWIND TRADERS - EARNINGS STATEMENT\nEmployee: Jordan Lee  SSN: 512-44-9031\nPay period: 10/01/2026 - 10/15/2026  Pay date: 10/20/2026\nGross pay 3,846.15  Federal withholding 412.00  Net pay 2,904.33\nYTD gross 76,923.00"}
+{"id":"ps-02","label":"pay_stub","text":"Contoso Ltd. Pay Stub\nPeriod ending 09/30/2026\nRegular hours 80.00 @ 31.25 = 2,500.00\nGross Pay 2,500.00\nDeductions: 401k 125.00, Medical 88.40\nNet Pay 1,912.10\nDirect deposit to account 004417728391"}
+{"id":"ps-03","label":"pay_stub","text":"Paystub - Fabrikam Inc\nemployee id 88213\npay date 11/01/2026\ngross pay $5,120.00 | net pay $3,977.61 | year to date $46,080.00"}
+{"id":"ps-04","label":"pay_stub","text":"Payroll advice for Sam Rivera\nHours worked 86 incl. overtime 6\nSalary component 3,000.00, overtime 337.50\nAmount transferred 2,611.02\nQuestions? payroll@tailspin.example"}
+{"id":"ps-05","label":"pay_stub","text":"Wages summary, two weeks ending Oct 12.\nEmployee: R. Okafor\nBase wages 2,200.00, shift premium 140.00, taxes 401.18\nPaid by check #10442"}
+{"id":"bs-01","label":"bank_statement","text":"WOODGROVE BANK - ACCOUNT STATEMENT\nChecking account 000918273645\nStatement period Sep 1 - Sep 30, 2026\nBeginning balance 4,201.17\nDeposits 6,110.00  Withdrawals 5,433.90\nEnding balance 4,877.27"}
+{"id":"bs-02","label":"bank_statement","text":"Statement of Account - Savings account\nOpening balance $12,004.88\n09/03 Deposit 500.00\n09/18 Interest 11.42\nClosing balance $12,516.30\nCustomer service (800) 555-0199"}
+{"id":"bs-03","label":"bank_statement","text":"Bank statement for Margie's Travel LLC\nBeginning balance 88,410.02\nEnding balance 79,377.91\nwithdrawals 31,882.11 deposits 22,850.00"}
+{"id":"bs-04","label":"bank_statement","text":"Your monthly activity\nDate Description Amount\n10/02 ACH PAYROLL CONTOSO +2,611.02\n10/05 CARD 4111 1111 1111 1111 GROCERY -84.17\n10/09 TRANSFER TO SAVINGS -500.00\nAvailable balance 3,904.55"}
+{"id":"bs-05","label":"bank_statement","text":"Transaction history for member 7741-20\n10/01 deposit 1,200.00\n10/14 ATM withdrawal 200.00\n10/22 bill pay 89.99\nbalance as of 10/31: 2,034.17"}
+{"id":"w2-01","label":"w2","text":"Form W-2 Wage and Tax Statement 2025\nEmployer identification number 12-3456789\nEmployee SSN 512-44-9031\n1 Wages, tips 92,300.00  2 Federal income tax withheld 11,204.00\n3 Social security wages 92,300.00  5 Medicare wages 92,300.00"}
+{"id":"w2-02","label":"w2","text":"W2 - Wage and Tax Statement\nTax year 2025\nSocial security wages 61,500.00\nMedicare wages and tips 61,500.00\nState wages 61,500.00"}
+{"id":"w2-03","label":"w2","text":"Copy B - To be filed with employee's federal tax return. Form W-2.\nEmployer: Fabrikam Inc, EIN 98-7654321\nFederal income tax withheld 7,880.00\nSocial security wages 54,000.00"}
+{"id":"w2-04","label":"w2","text":"Annual earnings and withholding summary, tax year 2025\nEmployer: Northwind Traders\nTotal compensation 77,000; amounts withheld for federal and state taxes listed on page 2"}
+{"id":"w2-05","label":"w2","text":"Corrected statement (W-2c) for tax year 2024\nPreviously reported wages 45,000.00, correct wages 47,250.00\nEmployee SSN 690-12-3344"}
+{"id":"ub-01","label":"utility_bill","text":"Contoso Power & Light\nService address: 12 Elm St\nMeter number 55-829-1\nUsage this period 642 kWh\nElectric charges $96.30\nAmount due $96.30  Due date 11/20/2026"}
+{"id":"ub-02","label":"utility_bill","text":"City Water Department\nMeter reading prev 18,204 current 18,950\nWater usage 746 gallons\nWater service charges $41.12, sewer charges $28.00\nAmount due $69.12"}
+{"id":"ub-03","label":"utility_bill","text":"Electricity bill - Account 33018827710\n1,120 kilowatt hours used\nElectricity usage charges 158.40\nDue date 12/05/2026"}
+{"id":"ub-04","label":"utility_bill","text":"Your energy summary for the service period Oct 3 - Nov 2\nGas used: 38 therms\nTotal to pay $54.90 by Nov 25\nQuestions: billing@fourthcoffee-energy.example"}
+{"id":"ub-05","label":"utility_bill","text":"Monthly utility statement\nTrash and recycling 22.00\nStormwater fee 9.50\nPlease pay 31.50 by the 15th"}
+{"id":"ot-01","label":"other","text":"Dear Jordan, thank you for your application. We will review your documents and get back to you within five business days. Regards, Loan Team"}
+{"id":"ot-02","label":"other","text":"PURCHASE AGREEMENT\nThis agreement is made between the Buyer and the Seller for the property located at 44 Pine Rd. Purchase price: $410,000. Closing within 45 days."}
+{"id":"ot-03","label":"other","text":"Homeowners insurance declaration page\nPolicy number HO-3 4471-22\nCoverage A dwelling 350,000\nAnnual premium 1,284.00"}
+{"id":"ot-04","label":"other","text":"Driver license\nClass C  DOB 03/14/1990  Expires 03/14/2030\nHeight 5-09 Eyes BRN"}

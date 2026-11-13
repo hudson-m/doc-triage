@@ -1,0 +1,48 @@
+# CodeRabbit: an independent reviewer that does not run the model that writes most of this
+# code (ADR 12). It comments; people decide.
+# Reference: https://docs.coderabbit.ai/reference/configuration
+language: "en-US"
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    # The default branch (staging) is reviewed by default; also review release and hotfix PRs.
+    base_branches:
+      - "^main$"
+  path_filters:
+    - "!package-lock.json"
+    - "!dataset/**"
+    - "!**/dist/**"
+    - "!coverage/**"
+  path_instructions:
+    - path: "packages/core/**"
+      instructions: >-
+        Pure domain: no frameworks, SDKs or node:* imports. Raw document text must never reach
+        an LlmClassifier; only the output of maskPii may leave the process. Rules decide only
+        with a clear winner; refusals, errors and low confidence go to manual review.
+        New behaviour needs a unit test here.
+    - path: "apps/api/**"
+      instructions: >-
+        Validate external input with Zod at the boundary. Errors are RFC 9457 problem details
+        without internals. Never log or return raw document text. CLI arguments are untrusted
+        (path traversal, injection).
+    - path: ".github/**"
+      instructions: >-
+        Actions pinned to commit SHAs; secrets passed only to the steps that need them; no
+        `${{ }}` of event data interpolated into `run:`; npm ci with --ignore-scripts; images
+        promoted by digest, never `latest`; OIDC instead of stored cloud credentials. Releases
+        go staging -> main; only hotfix/* branches with the hotfix label skip staging (ADR 10).
+    - path: "infra/**"
+      instructions: >-
+        Least privilege per environment, no client secrets, scale to zero, nothing with a fixed
+        cost (see docs/cost.md).
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "docs/adr/*.md"
