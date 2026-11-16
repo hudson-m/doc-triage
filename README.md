@@ -4,7 +4,7 @@ A small TypeScript service (Node + React) that classifies documents from mortgag
 applications (pay stubs, bank statements, W-2s, utility bills) **with rules first and an LLM
 only when the rules are unsure, sending the LLM nothing but PII-masked text**.
 
-It re-implements, with synthetic data and none of my employer's code, a pattern I built in
+It re-implements, with synthetic data, a pattern I built in
 production: cheap deterministic rules for the easy majority, an LLM fallback for the rest,
 and an evaluation CLI that measures accuracy and cost on a labeled dataset before a change ships.
 
